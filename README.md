@@ -1,7 +1,8 @@
 #FunPayParser
-Parser for funpay.ru
+Parser for [funpay.ru](http://funpay.ru)
 Script parsing website every 2 hour and collecting in data base (sqlite)
 
+---
 Ищу желающих проанализировать полученные данные
 
 ##dependencies
@@ -14,3 +15,9 @@ Script parsing website every 2 hour and collecting in data base (sqlite)
 * __main.py__ - start file
 * __MainSpider.py__ - parser
 * __ModelDB.py__ - model for DB
+
+##history
+version | date | description
+--- | --- | ---
+__1.0__ | 4.02.2016 | 
+__1.1__ | 28.02.2016 | update due site

@@ -1,8 +1,8 @@
 # -*- coding utf-8 -*-
 from peewee import *
+import logging
 
 database = SqliteDatabase('Parsing.db', **{})
-#conn = database.get_conn()
 
 class BaseModel(Model):
     class Meta:
@@ -25,6 +25,7 @@ class PriceFor(BaseModel):
 class Games(BaseModel):
     id = PrimaryKeyField(primary_key=True, unique=True)  # IDENTITY
     name = CharField()
+    moneyName  = CharField()
 
     class Meta:
         db_table = 'Games'
@@ -68,6 +69,32 @@ class Data(BaseModel):
     class Meta:
         db_table = 'Data'
 
-def create_tables():
+def check_conformity_games():
+    for column in database.get_columns('Games'):
+        if column.name == 'moneyName':
+            return True
+    return False
+
+def migrate_games():
+    try:
+        database.execute_sql('ALTER TABLE Games ADD COLUMN moneyName VARCHAR(255)')
+    except OperationalError as e:
+        return False
+    return True
+
+MIGRATE_GAMES = False
+
+def GetMigrateStatus():
+    return MIGRATE_GAMES
+
+def SetMigrateStatus(status):
+    global MIGRATE_GAMES
+    MIGRATE_GAMES = status
+
+def init_tables():
     database.connect()
     database.create_tables([Parsings, PriceFor, Games, Sides, Servers, Users, Data], True)
+    if not check_conformity_games():
+        if migrate_games():
+            logging.info('alter table succesfully')
+            SetMigrateStatus(True)

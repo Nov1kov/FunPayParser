@@ -7,7 +7,7 @@ from grab.spider import Spider, Task
 import dateparser
 
 from HelpFunctions import parseFloat, parseInt
-from ModelDB import Parsings, PriceFor, Games, Servers, Users, Sides, Data
+from ModelDB import Parsings, PriceFor, Games, Servers, Users, Sides, Data, GetMigrateStatus, SetMigrateStatus
 
 class FunPaySpider(Spider):
 
@@ -23,30 +23,7 @@ class FunPaySpider(Spider):
         self.currentParse = Parsings.create(time = datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     def task_initial(self, grab, task):
-        # elem
-            # 'attr', 'html', 'is_text_node', 'node', 'number', 'process_query', 'rex', 'select', 'text'
-        # elem.node()
-            # 'addnext', 'addprevious', 'append', 'attrib', 'base', 'base_url', 'body', 'classes',
-            # 'clear', 'cssselect', 'drop_tag', 'drop_tree', 'extend', 'find', 'find_class',
-            # 'find_rel_links', 'findall', 'findtext', 'forms', 'get', 'get_element_by_id',
-            # 'getchildren', 'getiterator', 'getnext', 'getparent', 'getprevious', 'getroottree',
-            # 'head', 'index', 'insert', 'items', 'iter', 'iterancestors', 'iterchildren',
-            # 'iterdescendants', 'iterfind', 'iterlinks', 'itersiblings', 'itertext', 'keys',
-            # 'label', 'make_links_absolute', 'makeelement', 'nsmap', 'prefix', 'remove', 'replace',
-            # 'resolve_base_href', 'rewrite_links', 'set', 'sourceline', 'tag', 'tail', 'text',
-            # 'text_content', 'values', 'xpath'
-        # grab.doc
-            # 'body', 'body_path', 'bom', 'browse', 'build_html_tree', 'build_xml_tree', 'charset',
-            # 'choose_form', 'choose_form_by_element', 'code', 'connect_time', 'convert_body_to_unicode',
-            # 'cookies', 'copy', 'detect_charset', 'download_size', 'download_speed', 'error_code',
-            # 'error_msg', 'form', 'form_fields', 'from_cache', 'get_body_chunk', 'get_meta_refresh_url',
-            # 'grab', 'head', 'headers', 'json', 'name_lookup_time', 'parse', 'pyquery', 'query_param',
-            # 'read_body_from_file', 'remote_ip', 'rex_assert', 'rex_search', 'rex_text', 'save',
-            # 'save_hash', 'select', 'set_input', 'set_input_by_id', 'set_input_by_number',
-            # 'set_input_by_xpath', 'status', 'structure', 'submit', 'text_assert', 'text_assert_any',
-            # 'text_search', 'time', 'timestamp', 'total_time', 'tree', 'unicode_body', 'upload_size',
-            # 'url', 'url_details', 'xml_tree'
-
+    # CHECK NEW USERS
         self.stopParseUsers = False
         lastUserId = Users.select().order_by(Users.id.desc()).get().id
         userId = lastUserId
@@ -62,36 +39,57 @@ class FunPaySpider(Spider):
 
         games = dict()
         game_name = ''
+        money_name = ''
         game_id = 0
-        special_games = []
-        for elem in grab.doc.select('//ul[@class="games"]//*') :
+
+        def save_in_dict():
+            nonlocal game_id, money_name, game_name
+            if game_id > 0:
+                games[game_id] = [game_name, money_name]
+                game_name = ''
+                money_name = ''
+                game_id = 0
+
+        for elem in grab.doc.select('//div[@class="chips-cols margin-top"]//*') :
 
             if elem.node().tag == 'a':
                 url = elem.node().attrib['href']
                 matcher = self.reGameId.search(url)
                 game_id = int(matcher.group(1))
+                if money_name == '':
+                    money_name = elem.node().text
+                games[game_id] = [game_name, money_name]
 
-                if 'http' in url:
-                    games[game_id] = game_name + '(' + elem.node().text + ')'
-                    special_games.append(game_id)
+            elif elem.node().tag == 'p':
+                if elem.node().attrib.get('class') == 'chips-cols-title':
+                    game_name = elem.node().text
 
             elif elem.node().tag == 'div':
                 if elem.node().attrib.get('class') == 'name':
                     game_name = elem.node().text
+                elif elem.node().attrib.get('class') == 'chips-cols-game':
+                    save_in_dict()
+        else:
+            save_in_dict()
 
-            else: #li
-                if game_id > 0 and not game_id in special_games:
-                    games[game_id] = game_name
-                    game_name = ''
-                    game_id = 0
-
-        self.gameCount = len(games)
-        for id, name in games.items():
-            game, created = Games.get_or_create(id = id, name = name)
-            if created:
-                logging.info('game save: ' + str(id) + ' = ' + name)
+        for id, params in games.items():
+            if GetMigrateStatus():
+                game = Games(id = id, name = params[0], moneyName = params[1])
+                if Games.select().where(Games.id == id):
+                    game.save()
+                    logging.info('game updated: ' + str(id) + ' = ' + params[0] + ', ' + params[1])
+                else:
+                    game.save(True)
+                    logging.info('game new save: ' + str(id) + ' = ' + params[0] + ', ' + params[1])
+            else:
+                game, created = Games.create_or_get(id = id, name = params[0], moneyName = params[1])
+                if created:
+                    logging.info('game save: ' + str(id) + ' = ' + params[0] + ', ' + params[1])
             url = 'http://funpay.ru/chips/%d/' % id
             yield Task('game', url = url, game = game)
+
+        SetMigrateStatus(False)
+        self.gameCount = len(games)
 
     def task_user(self, grab, task):
         if grab.response.code == 404:
@@ -201,3 +199,13 @@ class FunPaySpider(Spider):
                 self.dataCount += 1
                 logging.debug('userid: ' + str(user_id) + ' ' + str(user_online) + ' money: ' + str(money_summ) +
                               " coast: " + str(coast) + " columns: " + str(columns))
+
+
+if __name__ == '__main__':
+    from ModelDB import init_tables
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s %(message)s',
+                        datefmt='%H:%M:%S')
+    init_tables()
+    bot = FunPaySpider()
+    bot.run()

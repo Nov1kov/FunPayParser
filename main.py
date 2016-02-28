@@ -2,7 +2,7 @@
 
 import logging
 from MainSpider import FunPaySpider
-from ModelDB import create_tables, Parsings
+from ModelDB import init_tables, Parsings
 from datetime import datetime, timedelta
 from time import sleep
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
                         format='%(asctime)s %(message)s',
                         datefmt='%H:%M:%S')
     failedScan = False
-    create_tables()
+    init_tables()
     timeStart, nextTimeParse = GetScanSchedule()
     logging.info('scan was started through ' + str(round(nextTimeParse.seconds / 60)) + ' minutes in ' +
                  timeStart.strftime('%H:%M:%S'))
@@ -40,4 +40,4 @@ if __name__ == '__main__':
                          'Next scan through ' + str(round(nextTimeParse.seconds / 60)) + ' minutes in ' +
                          timeStart.strftime('%H:%M:%S'))
         else:
-            sleep(10)
+            sleep(0.5)
