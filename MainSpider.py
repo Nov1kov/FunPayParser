@@ -143,7 +143,7 @@ class FunPaySpider(Spider):
 
     # TABLE NAMES PRICE FOR
         priceFor = None
-        elems = grab.doc.select('//table[contains(@class,"chip-offers")]/thead/tr/th[last()]')
+        elems = grab.doc.select('//table[contains(@class,"table-condensed")]/thead/tr/th[last()]')
         if len(elems) > 0:
             elem = elems[0]
             if elem != None:
@@ -153,7 +153,7 @@ class FunPaySpider(Spider):
                     logging.info('"price for" save: ' + str(priceFor.id) + ' = ' + table_name)
 
     # TABLE DATA
-        for elem in grab.doc.select('//table[contains(@class,"chip-offers")]/tbody/tr') :
+        for elem in grab.doc.select('//table[contains(@class,"table-condensed")]/tbody/tr') :
             if elem.node().tag == 'tr':
                 data_href = elem.attr('data-href', '')
                 matcher = self.reUserId.search(data_href)
@@ -209,3 +209,7 @@ if __name__ == '__main__':
     init_tables()
     bot = FunPaySpider()
     bot.run()
+    logging.info('Parse ' + str(bot.gameCount) +
+                 ' games finish,\nadded ' + str(bot.dataCount) +
+                 ' data rows\n' +
+                'New users ' + str(bot.userCount) + ' was added')

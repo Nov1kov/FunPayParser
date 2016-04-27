@@ -21,3 +21,4 @@ version | date | description
 --- | --- | ---
 __1.0__ | 4.02.2016 | 
 __1.1__ | 28.02.2016 | update due site
+__1.2__ | 28.04.2016 | update due site
