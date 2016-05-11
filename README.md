@@ -20,5 +20,6 @@ Script parsing website every 2 hour and collecting in data base (sqlite)
 version | date | description
 --- | --- | ---
 __1.0__ | 4.02.2016 | 
-__1.1__ | 28.02.2016 | update due site
-__1.2__ | 28.04.2016 | update due site
+__1.1__ | 28.02.2016 | update together funpay
+__1.2__ | 28.04.2016 | update together funpay
+__1.3__ | 11.05.2016 | update together funpay

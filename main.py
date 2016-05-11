@@ -1,6 +1,7 @@
 # coding utf-8
 
 import logging
+import sys
 from MainSpider import FunPaySpider
 from ModelDB import init_tables, Parsings
 from datetime import datetime, timedelta
@@ -18,8 +19,14 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(message)s',
                         datefmt='%H:%M:%S')
-    failedScan = False
     init_tables()
+    if len(sys.argv) > 1 and sys.argv[1] == 'forced':
+        logging.warning('spider run once and forced')
+        bot = FunPaySpider() #thread_number=2
+        bot.run()
+        sys.exit(0)
+
+    failedScan = False
     timeStart, nextTimeParse = GetScanSchedule()
     logging.info('scan was started through ' + str(round(nextTimeParse.seconds / 60)) + ' minutes in ' +
                  timeStart.strftime('%H:%M:%S'))

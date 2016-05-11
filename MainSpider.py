@@ -38,39 +38,18 @@ class FunPaySpider(Spider):
                 break
 
         games = dict()
-        game_name = ''
-        money_name = ''
-        game_id = 0
 
-        def save_in_dict():
-            nonlocal game_id, money_name, game_name
-            if game_id > 0:
-                games[game_id] = [game_name, money_name]
-                game_name = ''
-                money_name = ''
-                game_id = 0
+        for elem in grab.doc.select('//div[@class="promo-games-game"]/p[@class="promo-games-list"]/a') :
+            url = elem.node().attrib['href']
+            matcher = self.reGameId.search(url)
+            game_id = int(matcher.group(1))
+            games[game_id] = ['', elem.node().text]
 
-        for elem in grab.doc.select('//div[@class="chips-cols margin-top"]//*') :
-
-            if elem.node().tag == 'a':
-                url = elem.node().attrib['href']
-                matcher = self.reGameId.search(url)
-                game_id = int(matcher.group(1))
-                if money_name == '':
-                    money_name = elem.node().text
-                games[game_id] = [game_name, money_name]
-
-            elif elem.node().tag == 'p':
-                if elem.node().attrib.get('class') == 'chips-cols-title':
-                    game_name = elem.node().text
-
-            elif elem.node().tag == 'div':
-                if elem.node().attrib.get('class') == 'name':
-                    game_name = elem.node().text
-                elif elem.node().attrib.get('class') == 'chips-cols-game':
-                    save_in_dict()
-        else:
-            save_in_dict()
+        for elem in grab.doc.select('//div[@class="promo-games-game"]/p[contains(@class, "promo-games-title")]/a') :
+            url = elem.node().attrib['href']
+            matcher = self.reGameId.search(url)
+            game_id = int(matcher.group(1))
+            games[game_id][0] = elem.node().text
 
         for id, params in games.items():
             if GetMigrateStatus():
