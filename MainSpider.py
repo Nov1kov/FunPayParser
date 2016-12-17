@@ -39,17 +39,11 @@ class FunPaySpider(Spider):
 
         games = dict()
 
-        for elem in grab.doc.select('//div[@class="promo-games-game"]/p[@class="promo-games-list"]/a') :
-            url = elem.node().attrib['href']
-            matcher = self.reGameId.search(url)
-            game_id = int(matcher.group(1))
-            games[game_id] = ['', elem.node().text]
-
         for elem in grab.doc.select('//div[@class="promo-games-game"]/p[contains(@class, "promo-games-title")]/a') :
             url = elem.node().attrib['href']
             matcher = self.reGameId.search(url)
             game_id = int(matcher.group(1))
-            games[game_id][0] = elem.node().text
+            games.setdefault(game_id, ['', ''])[0] = elem.node().text
 
         for id, params in games.items():
             if GetMigrateStatus():
@@ -103,6 +97,7 @@ class FunPaySpider(Spider):
     def task_game(self, grab, task):
 
     # SERVER NAMES
+        servers = []
         for elem in grab.doc.select('//select[@name="server"]/option') :
             server_id = elem.attr('value', '0')
             if server_id != '':
@@ -110,6 +105,7 @@ class FunPaySpider(Spider):
                 server, created = Servers.create_or_get(id = server_id, name = server_name, game = task.game.id)
                 if created:
                     logging.info('server save: ' + str(server_id) + ' = ' + server_name)
+                servers.append(server_id)
 
     # SIDES NAME
         for elem in grab.doc.select('//select[@name="side"]/option') :
@@ -137,7 +133,12 @@ class FunPaySpider(Spider):
                 data_href = elem.attr('data-href', '')
                 matcher = self.reUserId.search(data_href)
                 user_id = int(matcher.group(1))
-                server_id = int(elem.attr('data-server', 0))
+                serverAttr = elem.attr('data-server', 0)
+                if serverAttr == '*':
+                    server_ids = servers
+                else:
+                    server_ids = [int(serverAttr)]
+
                 data_side = int(elem.attr('data-side', 0))
 
                 money_summ = 0
@@ -168,16 +169,17 @@ class FunPaySpider(Spider):
                         else:
                             money_summ = _getNumber
 
-                data = Data.create(server = server_id,
-                        user = user_id,
-                        side = data_side,
-                        time = self.currentParse.id,
-                        pricefor = priceFor.id,
-                        amount = money_summ,
-                        price = coast)
-                self.dataCount += 1
-                logging.debug('userid: ' + str(user_id) + ' ' + str(user_online) + ' money: ' + str(money_summ) +
-                              " coast: " + str(coast) + " columns: " + str(columns))
+                for server_id in server_ids:
+                    data = Data.create(server = server_id,
+                            user = user_id,
+                            side = data_side,
+                            time = self.currentParse.id,
+                            pricefor = priceFor.id,
+                            amount = money_summ,
+                            price = coast)
+                    self.dataCount += 1
+                    logging.debug('userid: ' + str(user_id) + ' ' + str(user_online) + ' money: ' + str(money_summ) +
+                                  " coast: " + str(coast) + " columns: " + str(columns))
 
 
 if __name__ == '__main__':
