@@ -7,8 +7,9 @@ from ModelDB import init_tables, Parsings
 from datetime import datetime, timedelta
 from time import sleep
 
+
 def GetScanSchedule():
-    interval_scan = timedelta(hours = 2)
+    interval_scan = timedelta(hours=2)
     lastParseTime = Parsings.select().order_by(Parsings.id.desc()).get().time
     timeStart = lastParseTime + interval_scan
     nextTimeParse = timeStart - datetime.now()
@@ -22,7 +23,7 @@ if __name__ == '__main__':
     init_tables()
     if len(sys.argv) > 1 and sys.argv[1] == 'forced':
         logging.warning('spider run once and forced')
-        bot = FunPaySpider() #thread_number=2
+        bot = FunPaySpider()  # thread_number=2
         bot.run()
         sys.exit(0)
 
@@ -34,7 +35,7 @@ if __name__ == '__main__':
         timeStart, nextTimeParse = GetScanSchedule()
         if datetime.now() > timeStart or failedScan:
             failedScan = False
-            bot = FunPaySpider() #thread_number=2
+            bot = FunPaySpider()  # thread_number=2
             bot.run()
             timeStart, nextTimeParse = GetScanSchedule()
             if bot.gameCount == 0:
@@ -42,9 +43,10 @@ if __name__ == '__main__':
                 sleep(120)
                 failedScan = True
             else:
-                logging.info('Parse ' + str(bot.gameCount) + ' games finish,\nadded ' + str(bot.dataCount) + ' data rows\n' +
-                        'New users ' + str(bot.userCount) + ' was added\n' +
-                         'Next scan through ' + str(round(nextTimeParse.seconds / 60)) + ' minutes in ' +
-                         timeStart.strftime('%H:%M:%S'))
+                logging.info(
+                    'Parse ' + str(bot.gameCount) + ' games finish,\nadded ' + str(bot.dataCount) + ' data rows\n' +
+                    'New users ' + str(bot.userCount) + ' was added\n' +
+                    'Next scan through ' + str(round(nextTimeParse.seconds / 60)) + ' minutes in ' +
+                    timeStart.strftime('%H:%M:%S'))
         else:
             sleep(0.5)

@@ -8,6 +8,7 @@ def parseFloat(fstring):
             continue
     return 0
 
+
 def parseInt(fint):
     result = ''
     for s in fint.split():
